@@ -1,0 +1,36 @@
+From: vv-manet <willjvest@gmail.com>
+Subject: [PATCH] wireless: start a vif's network ifindex at -1, not 0
+
+wireless_check_interface() reports a network's device ifindex only when that
+device has hotplug ops (a bridge). For any other network, such as a
+batman-adv hard interface on a bare mesh vif, the live check returns -1. But a
+new vif's stored value comes from calloc and is 0. So the first
+wdev_check_network_enabled() after the radio comes up sees a change, sets
+config_update, and reloads the whole radio once per boot. Morse radios set
+reconf 0, so that reload is a full down/up: ~5.6 s, plus a second mesh
+start scan, on the Heltec HT-HD01 with OpenMANET 1.8.0.
+
+Start both the vif's and the vlan's stored ifindex at -1, the value the check
+uses for "no bridge", so the two agree from the first check.
+
+Came in with 3c6265f ("reload wireless device if any vif network bridge
+changes ifindex").
+---
+--- a/wireless.c	2026-10-23 22:16:20.932602950 -0400
++++ b/wireless.c	2026-10-23 22:16:20.990638205 -0400
+@@ -1209,6 +1209,7 @@
+ 	sprintf(name, "%d", vif->vlan_idx++);
+ 
+ 	vlan = calloc_a(sizeof(*vlan), &name_buf, strlen(name) + 1);
++	vlan->network_ifindex = -1;
+ 	vlan->name = strcpy(name_buf, name);
+ 	vlan->config = data;
+ 	vlan->section = section;
+@@ -1252,6 +1253,7 @@
+ 		       &name_buf, strlen(name) + 1);
+ 	vif->name = strcpy(name_buf, name);
+ 	vif->wdev = wdev;
++	vif->network_ifindex = -1;
+ 	vif->config = data;
+ 	vif->section = section;
+ 	vif->isolate = false;

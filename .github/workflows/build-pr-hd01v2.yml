@@ -4,6 +4,10 @@ permissions:
   contents: read
 
 on:
+  workflow_dispatch:
+  push:
+    branches:
+    - 'vv-boot-*'
   pull_request:
     paths:
     - 'boards/ht-hd01-v2/**'

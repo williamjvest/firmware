@@ -90,10 +90,8 @@ fs_wait_for_key () {
 
 failsafe_wait() {
 	FAILSAFE=
-	[ "$pi_preinit_no_failsafe" = "y" ] && {
-		fs_wait_for_key "" "" $fs_failsafe_wait_timeout
-		return
-	}
+	# vv-manet: with failsafe off, the wait only offered a serial debug-level prompt (4 s every boot)
+	[ "$pi_preinit_no_failsafe" = "y" ] && return
 	grep -q 'failsafe=' /proc/cmdline && FAILSAFE=true && export FAILSAFE
 	if [ "$FAILSAFE" != "true" ]; then
 		fs_wait_for_key f 'to enter failsafe mode' $fs_failsafe_wait_timeout && FAILSAFE=true
