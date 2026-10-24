@@ -94,6 +94,15 @@ jobs:
       - name: Configure build for ${{ inputs.board }}
         run: |
           ./scripts/openmanet_setup.sh -i -b ${{ inputs.board }}
+          # vv-manet: build only what goes in the image. Userspace packages at =m are feed ipks, not image
+          # contents, and some no longer build (adsbtocot's PyPI package is gone). Kernel modules stay as they
+          # are, so the kernel config matches stock. Fails if the image's =y set changes.
+          grep '=y$' .config | sort > /tmp/vv-y0
+          sed -i -E '/^CONFIG_PACKAGE_kmod-/!s/^CONFIG_PACKAGE_([^=]+)=m$/# CONFIG_PACKAGE_\1 is not set/' .config
+          make defconfig > /dev/null
+          grep '=y$' .config | sort > /tmp/vv-y1
+          diff /tmp/vv-y0 /tmp/vv-y1
+          echo "image =y set unchanged ($(wc -l < /tmp/vv-y1) options); userspace =m left: $(grep -c '^CONFIG_PACKAGE_[^k].*=m$' .config)"
 
       - name: Install package signing key
         if: inputs.releasepackages
